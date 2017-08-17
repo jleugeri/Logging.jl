@@ -5,6 +5,8 @@ using Logging, ProgressMeter
 #     Test case: simple for loop, logging mutable variables from local scope   #
 ################################################################################
 
+#NOTE: Not useable until options are available for @logging
+
 mutable struct Test
     a::Int64
 end
@@ -26,7 +28,7 @@ f() = begin
 
     # run a for loop, where every 100th step all variables of interest are logged
     # the result is a DataFrame object
-    result = @logging 100 true for i ∈ 1:10000000
+    result = @logging 100 for i ∈ 1:10000000
         t1.a = rand(1:10)
         t2.a = div(i,2)
         a = "I'm $(t1.a) years old!"
