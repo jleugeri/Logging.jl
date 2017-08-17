@@ -13,5 +13,5 @@ function fib_logging()
   end
 end
 
-data = fib_logging();
+data = fib_logging()
 ```
