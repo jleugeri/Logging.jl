@@ -61,13 +61,13 @@ end
     @logging(loop::Expr)
   The base functionality of the macro logging during a for loop.
 """
-macro logging(loop::Expr)
+macro logging(loop::Expr, logger::Symbol = :__log_data)
     if isa(loop, Expr) && loop.head === :for
         @gensym data
 
         # actual expression to evaluate for logging
         log_action = quote
-            push!($data, $__logger_eval(__log_data))
+            push!($data, $__logger_eval($logger))
         end
 
         loopbody = loop.args[end]
@@ -76,9 +76,9 @@ macro logging(loop::Expr)
 
         # wapper around the loop
         ex = quote
-            __log_data = __log_data # make local log available for read/write
+            $logger = $logger # make local log available for read/write
             let
-                $data = $DataFrame(map(typeof, $__logger_eval(__log_data)), map(Symbol, __log_data[1]), 0)
+                $data = $DataFrame(map(typeof, $__logger_eval($logger)), map(Symbol, $logger[1]), 0)
                 $loop
                 $data
             end

@@ -11,13 +11,13 @@ using Logging
 function fib_logging()
   F0 = 0
   F1 = 1
-  @log F0 "Fib"
+  @log F0 "Fib" mylogger
 
   @logging for i ∈ 1:10
     new_F = F0 + F1
     F0 = F1
     F1 = new_F
-  end
+  end mylogger
 end
 
 function fib_lognow()
