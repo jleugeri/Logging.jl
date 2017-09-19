@@ -2,29 +2,60 @@ module Logging
 using DataFrames
 
 
-export @log, @logging
+export @log, @logging, @lognow
 
-macro log(expr, names)
+"""
+    @log <expr1> <name1> [logger]
+    @log [Any[<expr1>,...]] [String[<name1>,...]] [logger]
+
+    Stores an expression or an array of expressions under corresponding names into the (optionally) specified logger dictionary.
+    This logger dictionary can be used in combination with the @lognow and @logging macros to log data.
+
+    Caution: the logger dictionary is defined in the local scope of the evaluation of @log.
+    If this happens within a hard local scope, the logger dictionary may be out of scope when
+    a logging macro such as @lognow or @logging is called. This can be prevented by declaring an
+    apropriate logger dictionary in a common parent scope and passing it as the last argument to the macros.
+"""
+macro log(expr, names, logger::Symbol=:__log_data)
     # generate symbols that can be used for temporary objects in the macro expansion
-    @gensym esymb nsymb
+    @gensym esymb nsymb T
     ex = quote
         # evaluate the names in the calling scope, but wrap the tracking expressions into a function closure
         $nsymb = eval($names)
-        $esymb = ()->$expr
-        __log_data = try
-            append!(__log_data[1], $nsymb)
-            push!(__log_data[2], $esymb)
-            __log_data
+        $T = typeof(eval($expr))
+        function $esymb()::$T
+            convert($T, $expr)
+        end
+
+        $logger = try
+            append!($logger[1], $nsymb)
+            push!($logger[2], $esymb)
+            $logger
         catch err
-            ([[]; $nsymb], Any[$esymb])
+            (String[[]; $nsymb], Function[$esymb])
         end
     end
     esc(ex)
 end
-# Syntax:  @log obj.attr
-# or:      @log [...] [...]
 
-__logger_eval(log) = foldl((vals,fun)->[vals; fun()], [], log[2])
+@inline __logger_eval(log)::Vector{Any} = foldl((vals,fun)->Any[vals; fun()], Any[], log[2])
+
+"""
+    @lognow [data storage] [logger dict]
+    Log all variables tracked in the logger dict into the data storage.
+"""
+macro lognow(data::Symbol = :__log, logger::Symbol = :__log_data)
+    esc(quote
+        $data = try
+            push!($data, Logging.__logger_eval($logger))
+            $data
+        catch err
+            $data = DataFrames.DataFrame(map(typeof, Logging.__logger_eval(__log_data)), map(Symbol, __log_data[1]), 0)
+            push!($data, Logging.__logger_eval($logger))
+            $data
+        end
+    end)
+end
 
 """
     @logging(loop::Expr)
