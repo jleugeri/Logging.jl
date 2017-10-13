@@ -50,7 +50,7 @@ macro lognow(data::Symbol = :__log, logger::Symbol = :__log_data)
             push!($data, Logging.__logger_eval($logger))
             $data
         catch err
-            $data = DataFrames.DataFrame(map(typeof, Logging.__logger_eval(__log_data)), map(Symbol, __log_data[1]), 0)
+            $data = DataFrames.DataFrame(map(typeof, Logging.__logger_eval($logger)), map(Symbol, $logger[1]), 0)
             push!($data, Logging.__logger_eval($logger))
             $data
         end
